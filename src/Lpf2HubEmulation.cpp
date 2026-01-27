@@ -188,9 +188,17 @@ public:
         }
         else if (msgReceived[(byte)HubPropertyMessage::PROPERTY] == (byte)HubPropertyReference::PRIMARY_MAC_ADDRESS)
         {
-          byte feedback[] = {0x0b, 0x00, 0x01, 0x0d, 0x06, 0x90, 0x84, 0x2b, 0x03, 0x19, 0x7f};
-          _lpf2HubEmulation->pCharacteristic->setValue(feedback, sizeof(feedback));
-          _lpf2HubEmulation->pCharacteristic->notify();
+          std::string payload;
+          payload.push_back((char)HubPropertyReference::PRIMARY_MAC_ADDRESS);
+          payload.push_back((char)HubPropertyOperation::UPDATE_UPSTREAM);
+          auto mac = ESP.getEfuseMac();
+          payload.push_back((char)((mac >> 40) & 0xFF));
+          payload.push_back((char)((mac >> 32) & 0xFF));
+          payload.push_back((char)((mac >> 24) & 0xFF));
+          payload.push_back((char)((mac >> 16) & 0xFF));
+          payload.push_back((char)((mac >> 8) & 0xFF));
+          payload.push_back((char)(mac & 0xFF));
+          _lpf2HubEmulation->writeValue(MessageType::HUB_PROPERTIES, payload);
         }
         else if (msgReceived[(byte)HubPropertyMessage::PROPERTY] == (byte)HubPropertyReference::BUTTON)
         {
