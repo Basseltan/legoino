@@ -41,27 +41,20 @@ public:
     _lpf2HubEmulation = lpf2HubEmulation;
   }
 
-  void onConnect(NimBLEServer *pServer)
+  void onConnect(NimBLEServer* pServer, NimBLEConnInfo& connInfo) override
   {
     log_d("Device connected");
     _lpf2HubEmulation->isConnected = true;
+    pServer->updateConnParams(connInfo.getConnHandle(), 24, 48, 0, 60);
   };
 
-  void onDisconnect(NimBLEServer *pServer)
+  void onDisconnect(NimBLEServer* pServer, NimBLEConnInfo& connInfo, int reason) override
   {
-    log_d("Device disconnected");
+    log_d("Device disconnected, reason: %i", reason);
     _lpf2HubEmulation->isConnected = false;
     _lpf2HubEmulation->isSubscripted = false;
     _lpf2HubEmulation->isPortInitialized = false;
   }
-
-  // This is required to make it working with BLE Scanner and PoweredUp on devices with Android <6.
-  // This seems to be not needed for Android >=6
-  // TODO: find out why this method helps. Maybe it goes about timeout?
-  void onConnect(NimBLEServer *pServer, ble_gap_conn_desc *desc)
-  {
-    pServer->updateConnParams(desc->conn_handle, 24, 48, 0, 60);
-  };
 };
 
 class Lpf2HubCharacteristicCallbacks : public NimBLECharacteristicCallbacks
@@ -74,20 +67,20 @@ public:
     _lpf2HubEmulation = lpf2HubEmulation;
   }
 
-  void onSubscribe(NimBLECharacteristic *pCharacteristic, ble_gap_conn_desc* desc, uint16_t subValue)
+  void onSubscribe(NimBLECharacteristic *pCharacteristic, NimBLEConnInfo& connInfo, uint16_t subValue) override
   {
     log_d("Client subscription status: %s (%d)", 
           subValue == 0 ? "Un-Subscribed" : 
           subValue == 1 ? "Notifications" : 
           subValue == 2 ? "Indications" : 
           subValue == 3 ? "Notifications and Indications" :
-          "unknown subscription status",
+          "unknown subscription dstatus",
           subValue);
 
     _lpf2HubEmulation->isSubscripted = subValue != 0;
   }  
 
-  void onWrite(NimBLECharacteristic *pCharacteristic)
+  void onWrite(NimBLECharacteristic *pCharacteristic, NimBLEConnInfo& connInfo) override
   {
     std::string msgReceived = pCharacteristic->getValue();
 
@@ -287,7 +280,7 @@ public:
     }
   }
 
-  void onRead(NimBLECharacteristic *pCharacteristic)
+  void onRead(NimBLECharacteristic *pCharacteristic, NimBLEConnInfo& connInfo) override
   {
     log_d("read request");
   }
